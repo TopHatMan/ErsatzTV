@@ -9,7 +9,7 @@ namespace ErsatzTV.Core.Tests.Scheduling;
 public class RotatingStartContentTests
 {
     [Test]
-    public void Should_Play_In_Season_Episode_Order_From_Rotated_Start()
+    public void Should_Play_In_Season_Episode_Order_From_Random_Start()
     {
         var state = new CollectionEnumeratorState { Seed = 1 };
         var enumerator = new RotatingStartMediaCollectionEnumerator(Episodes(5), state, true);
@@ -18,7 +18,7 @@ public class RotatingStartContentTests
     }
 
     [Test]
-    public void Should_Select_A_Different_Start_After_Each_Complete_Cycle()
+    public void Should_Select_An_Arbitrary_Different_Start_After_Each_Complete_Cycle()
     {
         var state = new CollectionEnumeratorState { Seed = 1 };
         var enumerator = new RotatingStartMediaCollectionEnumerator(Episodes(5), state, true);
@@ -26,7 +26,10 @@ public class RotatingStartContentTests
         List<int> firstCycle = TakeIds(enumerator, 5);
         List<int> secondCycle = TakeIds(enumerator, 5);
 
+        firstCycle[0].ShouldBe(2);
+        secondCycle[0].ShouldBe(4);
         secondCycle[0].ShouldNotBe(firstCycle[0]);
+        secondCycle[0].ShouldNotBe(firstCycle[0] + 1);
         secondCycle.Distinct().Count().ShouldBe(5);
 
         for (var i = 1; i < secondCycle.Count; i++)
