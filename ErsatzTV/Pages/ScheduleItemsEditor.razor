@@ -1,4 +1,4 @@
-﻿@page "/schedules/{Id:int}/items"
+@page "/schedules/{Id:int}/items"
 @using ErsatzTV.Application.Filler
 @using ErsatzTV.Application.Graphics
 @using ErsatzTV.Application.MediaCollections
@@ -410,6 +410,7 @@
                 case CollectionType.SmartCollection:
                 case CollectionType.SearchQuery:
                     <MudSelectItem Value="PlaybackOrder.Chronological">Chronological</MudSelectItem>
+                    <MudSelectItem Value="PlaybackOrder.RotateStart">Random Start, Play in Order</MudSelectItem>
                     <MudSelectItem Value="PlaybackOrder.Random">Random</MudSelectItem>
                     <MudSelectItem Value="PlaybackOrder.Shuffle">Shuffle</MudSelectItem>
                     <MudSelectItem Value="PlaybackOrder.ShuffleInOrder">Shuffle In Order</MudSelectItem>
@@ -418,6 +419,7 @@
                 case CollectionType.TelevisionShow:
                     <MudSelectItem Value="PlaybackOrder.Chronological">Chronological</MudSelectItem>
                     <MudSelectItem Value="PlaybackOrder.SeasonEpisode">Season, Episode</MudSelectItem>
+                    <MudSelectItem Value="PlaybackOrder.RotateStart">Random Start, Play in Order</MudSelectItem>
                     <MudSelectItem Value="PlaybackOrder.Random">Random</MudSelectItem>
                     <MudSelectItem Value="PlaybackOrder.Shuffle">Shuffle</MudSelectItem>
                     <MudSelectItem Value="PlaybackOrder.MultiEpisodeShuffle">Multi-Episode Shuffle</MudSelectItem>
@@ -433,6 +435,7 @@
                     break;
                 default:
                     <MudSelectItem Value="PlaybackOrder.Chronological">Chronological</MudSelectItem>
+                    <MudSelectItem Value="PlaybackOrder.RotateStart">Random Start, Play in Order</MudSelectItem>
                     <MudSelectItem Value="PlaybackOrder.Random">Random</MudSelectItem>
                     <MudSelectItem Value="PlaybackOrder.Shuffle">Shuffle</MudSelectItem>
                     break;
