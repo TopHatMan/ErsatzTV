@@ -26,8 +26,10 @@ $ErrorActionPreference = "Stop"
 
 $scriptRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 $repoRoot = (Resolve-Path (Join-Path $scriptRoot "..")).Path
-$projectPath = Join-Path $repoRoot "ErsatzTV\ErsatzTV.csproj"
-$artifactsRoot = Join-Path $repoRoot "artifacts\test-build"
+$projectDirectory = Join-Path $repoRoot "ErsatzTV"
+$projectPath = Join-Path $projectDirectory "ErsatzTV.csproj"
+$artifactsDirectory = Join-Path $repoRoot "artifacts"
+$artifactsRoot = Join-Path $artifactsDirectory "test-build"
 $safeConfiguration = $Configuration.Replace(" ", "-").ToLowerInvariant()
 $packageName = "ErsatzTV-$safeConfiguration-$Runtime"
 $publishPath = Join-Path $artifactsRoot $packageName
