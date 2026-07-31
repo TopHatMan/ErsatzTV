@@ -5,9 +5,9 @@ using ErsatzTV.Core.Interfaces.Scheduling;
 namespace ErsatzTV.Core.Scheduling;
 
 /// <summary>
-/// Plays every item in order from a deterministic rotated starting point.
-/// After completing a full cycle, a new starting point is selected while
-/// preserving the same ordered sequence and avoiding the previous start.
+/// Plays every item in order from a deterministic pseudo-random starting point.
+/// After completing a full cycle, a new starting point is selected from anywhere
+/// in the collection while preserving the normal ordered sequence.
 /// </summary>
 public sealed class RotatingStartMediaCollectionEnumerator : IMediaCollectionEnumerator
 {
@@ -47,7 +47,7 @@ public sealed class RotatingStartMediaCollectionEnumerator : IMediaCollectionEnu
         NormalizeState();
     }
 
-    public string SchedulingContextName => "Rotate Start, Play in Order";
+    public string SchedulingContextName => "Random Start, Play in Order";
 
     public CollectionEnumeratorState State { get; }
 
