@@ -60,7 +60,7 @@ public class RotatingStartContentTests
     }
 
     [Test]
-    public void Reset_State_Should_Respect_An_Explicit_Index()
+    public void Reset_State_Should_Respect_An_Explicit_Index_And_Cycle_Boundary()
     {
         var enumerator = new RotatingStartMediaCollectionEnumerator(
             Episodes(5),
@@ -71,6 +71,14 @@ public class RotatingStartContentTests
 
         enumerator.Current.Map(x => x.Id).IfNone(-1).ShouldBe(5);
         enumerator.State.Index.ShouldBe(4);
+        enumerator.State.Started.ShouldBeTrue();
+
+        enumerator.MoveNext(Option<DateTimeOffset>.None);
+        enumerator.Current.Map(x => x.Id).IfNone(-1).ShouldBe(1);
+
+        enumerator.MoveNext(Option<DateTimeOffset>.None);
+        enumerator.Current.Map(x => x.Id).IfNone(-1).ShouldBe(4);
+        enumerator.State.Seed.ShouldNotBe(1);
     }
 
     [Test]
