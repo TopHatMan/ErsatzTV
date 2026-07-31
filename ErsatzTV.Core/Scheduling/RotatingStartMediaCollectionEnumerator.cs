@@ -86,7 +86,7 @@ public sealed class RotatingStartMediaCollectionEnumerator : IMediaCollectionEnu
     public void ResetState(CollectionEnumeratorState state)
     {
         State.Seed = state.Seed;
-        State.Started = state.Started;
+        State.Started = _sortedMediaItems.Count > 0;
         State.Index = _sortedMediaItems.Count == 0
             ? 0
             : Math.Clamp(state.Index, 0, _sortedMediaItems.Count - 1);
