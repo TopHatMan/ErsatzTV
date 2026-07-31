@@ -5,7 +5,7 @@ using ErsatzTV.Core.Interfaces.Scheduling;
 namespace ErsatzTV.Core.Scheduling;
 
 /// <summary>
-/// Plays every item in order from a deterministic pseudo-random starting point.
+/// Plays every item in order from a seeded pseudo-random starting point.
 /// After completing a full cycle, a new starting point is selected from anywhere
 /// in the collection while preserving the normal ordered sequence.
 /// </summary>
