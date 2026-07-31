@@ -1,4 +1,4 @@
-﻿using ErsatzTV.Core;
+using ErsatzTV.Core;
 using ErsatzTV.Core.Domain;
 using ErsatzTV.Core.Domain.Filler;
 using ErsatzTV.Infrastructure.Data;
@@ -59,6 +59,7 @@ public abstract class ProgramScheduleItemCommandBase
                 case PlaybackOrder.MultiEpisodeShuffle:
                 case PlaybackOrder.SeasonEpisode:
                 case PlaybackOrder.RandomRotation:
+                case PlaybackOrder.RotateStart:
                     return BaseError.New($"Invalid playback order for multi collection: '{item.PlaybackOrder}'");
                 case PlaybackOrder.Shuffle:
                 case PlaybackOrder.ShuffleInOrder:

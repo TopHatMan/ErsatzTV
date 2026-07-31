@@ -1,4 +1,4 @@
-﻿using System.IO.Abstractions;
+using System.IO.Abstractions;
 using ErsatzTV.Core.Domain;
 using ErsatzTV.Core.Domain.Filler;
 using ErsatzTV.Core.Errors;
@@ -1341,6 +1341,11 @@ public class PlayoutBuilder : IPlayoutBuilder
 
         switch (playbackOrder)
         {
+            case PlaybackOrder.RotateStart:
+                return new RotatingStartMediaCollectionEnumerator(
+                    mediaItems,
+                    state,
+                    collectionKey.CollectionType is CollectionType.TelevisionShow or CollectionType.TelevisionSeason);
             case PlaybackOrder.Chronological:
                 if (randomStartPoint)
                 {

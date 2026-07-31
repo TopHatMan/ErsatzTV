@@ -1,4 +1,4 @@
-﻿namespace ErsatzTV.Core.Domain;
+namespace ErsatzTV.Core.Domain;
 
 public enum PlaybackOrder
 {
@@ -11,5 +11,6 @@ public enum PlaybackOrder
     MultiEpisodeShuffle = 5,
     SeasonEpisode = 6,
     RandomRotation = 7,
-    Marathon = 8
+    Marathon = 8,
+    RotateStart = 9
 }
