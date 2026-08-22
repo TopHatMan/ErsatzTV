@@ -54,11 +54,28 @@ function Assert-Command {
     }
 }
 
+function Get-MsBuildPath {
+    param([Parameter(Mandatory = $true)][string]$Path)
+
+    if ($Path.EndsWith("\", [StringComparison]::Ordinal) -or $Path.EndsWith("/", [StringComparison]::Ordinal)) {
+        return $Path
+    }
+
+    return $Path + [IO.Path]::DirectorySeparatorChar
+}
+
 function Invoke-DotNetPublish {
     param(
         [Parameter(Mandatory = $true)][string]$Project,
         [Parameter(Mandatory = $true)][string]$Output
     )
+
+    $projectName = [IO.Path]::GetFileNameWithoutExtension($Project)
+    $msbuildRoot = Join-Path $tempRoot "msbuild\$projectName"
+    $objectDir = Get-MsBuildPath (Join-Path $msbuildRoot "obj")
+    $binDir = Get-MsBuildPath (Join-Path $msbuildRoot "bin")
+    New-Item -ItemType Directory -Path $objectDir -Force | Out-Null
+    New-Item -ItemType Directory -Path $binDir -Force | Out-Null
 
     $arguments = @(
         "publish",
@@ -72,7 +89,10 @@ function Invoke-DotNetPublish {
         "/p:InformationalVersion=local-$commit-$runtime",
         "/p:EnableCompressionInSingleFile=true",
         "/p:DebugType=Embedded",
-        "/p:PublishSingleFile=true"
+        "/p:PublishSingleFile=true",
+        "/p:BaseIntermediateOutputPath=$objectDir",
+        "/p:BaseOutputPath=$binDir",
+        "/p:BuildInParallel=false"
     )
 
     & dotnet @arguments
