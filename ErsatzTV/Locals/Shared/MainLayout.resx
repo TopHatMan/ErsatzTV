@@ -57,6 +57,9 @@
     <data name="ButtonMediaTrash" xml:space="preserve">
         <value>Trash</value>
     </data>
+    <data name="ButtonMediaZeroDuration" xml:space="preserve">
+        <value>Zero Duration</value>
+    </data>
     <data name="ButtonMediaTvShows" xml:space="preserve">
         <value>TV Shows</value>
     </data>

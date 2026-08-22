@@ -123,6 +123,12 @@ namespace ErsatzTV.Locals.Shared {
             }
         }
         
+        internal static string ButtonMediaZeroDuration {
+            get {
+                return ResourceManager.GetString("ButtonMediaZeroDuration", resourceCulture);
+            }
+        }
+        
         internal static string ButtonMediaTvShows {
             get {
                 return ResourceManager.GetString("ButtonMediaTvShows", resourceCulture);

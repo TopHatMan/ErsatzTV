@@ -1,0 +1,22 @@
+# Copy this file to ship-to-server.local.ps1 and edit the paths.
+# ship-to-server.local.ps1 is gitignored.
+
+# win-x64 for a Windows server, linux-x64 if you compile here and copy to Linux
+$Runtime = "win-x64"
+
+# Folder that currently runs ErsatzTV. Files in the new package replace this folder.
+$InstallPath = "D:\Apps\ErsatzTV"
+
+# Stop this process before copying (Windows). Leave empty to skip.
+$StopProcessName = "ErsatzTV"
+
+# Start this exe after copy, relative to InstallPath. Leave empty to start it yourself.
+$StartExe = "ErsatzTV-Windows.exe"
+
+# Optional: copy the zip to a share as well
+# $DeployZipPath = "\\mediaserver\apps\ErsatzTV"
+
+# Optional remote copy with OpenSSH (Windows OpenSSH client or scp)
+# $DeployHost = "user@192.168.1.10"
+# $RemotePath = "/opt/ersatztv"
+# $RemoteRestartCommand = "sudo systemctl restart ersatztv"

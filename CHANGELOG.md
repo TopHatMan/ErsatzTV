@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
+### Added
+- Add a Zero Duration page with the full file list, location grouping, CSV/path export, and bulk delete so broken files can be removed and redownloaded
+- Add `ship-to-server.cmd` to compile a local package and copy it over a running ErsatzTV install
 
 ## [26.8.0] - 2026-08-20
 ### Added

@@ -3,6 +3,9 @@ param(
     [ValidateSet("Debug", "Release")]
     [string]$Configuration = "Release",
 
+    [ValidateSet("win-x64", "linux-x64")]
+    [string]$Runtime = "win-x64",
+
     [switch]$NoZip,
     [switch]$SkipDownloads,
     [switch]$KeepExisting,
@@ -13,11 +16,11 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
-$runtime = "win-x64"
+$runtime = $Runtime
 $framework = "net10.0"
 $launcherVersion = "v1.0.0"
 $ffmpegVersion = "8.1.2"
-$ffmpegFile = "ffmpeg-n8.1.2-etv-g82f576a8-win64-gpl-8.1.zip"
+$ffmpegFile = "ffmpeg-n8.1.2-etv-g3c0520f9-win64-gpl-8.1.zip"
 
 $scriptRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 $repoRoot = (Resolve-Path (Join-Path $scriptRoot "..")).Path
@@ -111,6 +114,42 @@ function Download-File {
 
     Write-Host "Downloading $(Split-Path -Leaf $Destination)..." -ForegroundColor Cyan
     Invoke-WebRequest -Uri $Uri -OutFile $Destination -Headers (Get-GitHubHeaders) -UseBasicParsing
+}
+
+function Add-ExternalLinuxTools {
+    New-Item -ItemType Directory -Path $downloadRoot -Force | Out-Null
+
+    $nextRelease = Invoke-RestMethod `
+        -Uri "https://api.github.com/repos/ErsatzTV/next/releases/tags/develop" `
+        -Headers (Get-GitHubHeaders) `
+        -UseBasicParsing
+
+    $nextAsset = $nextRelease.assets |
+        Where-Object { $_.name -like "ersatztv-next-*-linux-x64.tar.gz" } |
+        Select-Object -First 1
+
+    if ($null -eq $nextAsset) {
+        throw "Could not find the current ErsatzTV Next linux-x64 release asset."
+    }
+
+    $nextArchive = Join-Path $downloadRoot $nextAsset.name
+    $nextExtracted = Join-Path $downloadRoot "next"
+    Download-File -Uri $nextAsset.browser_download_url -Destination $nextArchive
+
+    New-Item -ItemType Directory -Path $nextExtracted -Force | Out-Null
+    tar -xf $nextArchive -C $nextExtracted --strip-components 1
+    if ($LASTEXITCODE -ne 0) {
+        throw "Failed to extract $($nextAsset.name)."
+    }
+
+    $channel = Get-ChildItem -LiteralPath $nextExtracted -Filter "ersatztv-channel" -Recurse |
+        Select-Object -First 1
+
+    if ($null -eq $channel) {
+        throw "The downloaded ErsatzTV Next package did not contain ersatztv-channel."
+    }
+
+    Copy-Item -LiteralPath $channel.FullName -Destination (Join-Path $packagePath "ersatztv-channel") -Force
 }
 
 function Add-ExternalWindowsTools {
@@ -310,13 +349,20 @@ if (Test-Path -LiteralPath $resourcesPath) {
 }
 
 if (-not $SkipDownloads) {
-    Add-ExternalWindowsTools
+    if ($runtime -eq "win-x64") {
+        Add-ExternalWindowsTools
+    }
+    else {
+        Add-ExternalLinuxTools
+    }
 }
 else {
     Write-Warning "Skipping launcher, ErsatzTV Next engine, FFmpeg, and FFprobe downloads."
 }
 
-Write-TestLaunchers
+if ($runtime -eq "win-x64") {
+    Write-TestLaunchers
+}
 
 $buildInfo = @"
 ErsatzTV local test package
@@ -326,7 +372,7 @@ Configuration: $Configuration
 Runtime:       $runtime
 Publishing:    self-contained, single-file
 
-Recommended test launch:
+Recommended Windows test launch:
   Start-ErsatzTV-Test.cmd
 
 Visible-console troubleshooting:
@@ -340,6 +386,11 @@ Official-style launcher:
   This starts ErsatzTV with its console hidden. Use the tray icon's
   "Launch Web UI" option. For startup failures, use the console launcher above.
 
+Ship this package:
+  ship-to-server.cmd
+  Copy scripts\ship-to-server.local.ps1.example to ship-to-server.local.ps1
+  and set InstallPath to the running ErsatzTV folder.
+
 Before starting:
   Exit any existing ErsatzTV tray instance. ErsatzTV prevents a second process
   from using the same configuration folder.
@@ -349,6 +400,7 @@ Logs:
 
 This package does not copy your existing database, configuration, or media.
 The locally-built ErsatzTV executables are not code-signed.
+Linux packages do not include ffmpeg; install ffmpeg on the server or use Docker.
 "@
 
 Set-Content -LiteralPath (Join-Path $packagePath "TEST-BUILD.txt") -Value $buildInfo -Encoding UTF8

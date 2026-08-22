@@ -1,5 +1,3 @@
-﻿using ErsatzTV.Core.Domain;
-using ErsatzTV.Core.Extensions;
 using ErsatzTV.Core.Health;
 using ErsatzTV.Core.Health.Checks;
 using ErsatzTV.Infrastructure.Data;
@@ -20,52 +18,25 @@ public class ZeroDurationHealthCheck : BaseHealthCheck, IZeroDurationHealthCheck
     {
         await using TvContext dbContext = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
 
-        List<Episode> episodes = await dbContext.Episodes
-            .Filter(e => e.MediaVersions.Any(mv => mv.Duration == TimeSpan.Zero))
-            .Include(e => e.MediaVersions)
-            .ThenInclude(mv => mv.MediaFiles)
-            .ToListAsync(cancellationToken);
+        int movies = await dbContext.Movies
+            .CountAsync(m => m.MediaVersions.Any(mv => mv.Duration == TimeSpan.Zero), cancellationToken);
+        int episodes = await dbContext.Episodes
+            .CountAsync(e => e.MediaVersions.Any(mv => mv.Duration == TimeSpan.Zero), cancellationToken);
+        int musicVideos = await dbContext.MusicVideos
+            .CountAsync(mv => mv.MediaVersions.Any(v => v.Duration == TimeSpan.Zero), cancellationToken);
+        int otherVideos = await dbContext.OtherVideos
+            .CountAsync(ov => ov.MediaVersions.Any(mv => mv.Duration == TimeSpan.Zero), cancellationToken);
+        int songs = await dbContext.Songs
+            .CountAsync(s => s.MediaVersions.Any(mv => mv.Duration == TimeSpan.Zero), cancellationToken);
 
-        List<Movie> movies = await dbContext.Movies
-            .Filter(m => m.MediaVersions.Any(mv => mv.Duration == TimeSpan.Zero))
-            .Include(m => m.MediaVersions)
-            .ThenInclude(mv => mv.MediaFiles)
-            .ToListAsync(cancellationToken);
+        int count = movies + episodes + musicVideos + otherVideos + songs;
 
-        List<MusicVideo> musicVideos = await dbContext.MusicVideos
-            .Filter(mv => mv.MediaVersions.Any(v => v.Duration == TimeSpan.Zero))
-            .Include(mv => mv.MediaVersions)
-            .ThenInclude(mv => mv.MediaFiles)
-            .ToListAsync(cancellationToken);
-
-        List<OtherVideo> otherVideos = await dbContext.OtherVideos
-            .Filter(ov => ov.MediaVersions.Any(mv => mv.Duration == TimeSpan.Zero))
-            .Include(ov => ov.MediaVersions)
-            .ThenInclude(mv => mv.MediaFiles)
-            .ToListAsync(cancellationToken);
-
-        List<Song> songs = await dbContext.Songs
-            .Filter(s => s.MediaVersions.Any(mv => mv.Duration == TimeSpan.Zero))
-            .Include(s => s.MediaVersions)
-            .ThenInclude(mv => mv.MediaFiles)
-            .ToListAsync(cancellationToken);
-
-        var all = movies.Map(m => m.MediaVersions.Head().MediaFiles.Head().Path)
-            .Append(episodes.Map(e => e.MediaVersions.Head().MediaFiles.Head().Path))
-            .Append(musicVideos.Map(mv => mv.GetHeadVersion().MediaFiles.Head().Path))
-            .Append(otherVideos.Map(ov => ov.GetHeadVersion().MediaFiles.Head().Path))
-            .Append(songs.Map(s => s.GetHeadVersion().MediaFiles.Head().Path))
-            .ToList();
-
-        if (all.Count != 0)
+        if (count != 0)
         {
-            var paths = all.Take(5).ToList();
-
-            var files = string.Join(", ", paths);
-
             return WarningResult(
-                $"There are {all.Count} files with zero duration, including the following: {files}",
-                $"There are {all.Count} files with zero duration");
+                $"There are {count} files with zero duration. Open the full list to export, fix, or delete them so they can be redownloaded.",
+                $"There are {count} files with zero duration",
+                new HealthCheckLink("media/zero-duration"));
         }
 
         return OkResult();

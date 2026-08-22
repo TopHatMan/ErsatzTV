@@ -44,5 +44,6 @@ scripts/generate-api-sdk/swagger.json
 scripts/download-test-content.sh
 
 docker-compose.override.yml
+scripts/ship-to-server.local.ps1
 
 ErsatzTV/wwwroot/v2/

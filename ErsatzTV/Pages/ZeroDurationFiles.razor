@@ -1,0 +1,281 @@
+@page "/media/zero-duration"
+@using ErsatzTV.Application.Health
+@implements IDisposable
+@inject IMediator Mediator
+@inject IDialogService Dialog
+@inject ISnackbar Snackbar
+@inject IJSRuntime JsRuntime
+
+<MudForm Style="max-height: 100%">
+    <MudPaper Square="true" Style="display: flex; min-height: 64px; width: 100%; z-index: 100; align-items: center">
+        <div class="ml-6 mr-6" style="display: flex; flex-wrap: wrap; gap: 8px; width: 100%; align-items: center; padding: 8px 0">
+            <MudText Typo="Typo.h6">Zero Duration Files</MudText>
+            <div class="flex-grow-1"></div>
+            <MudButton Variant="Variant.Outlined"
+                       Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Download"
+                       Disabled="@(!_files.Any())"
+                       OnClick="@(() => Download("csv"))">
+                Export CSV
+            </MudButton>
+            <MudButton Variant="Variant.Outlined"
+                       Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.List"
+                       Disabled="@(!_files.Any())"
+                       OnClick="@(() => Download("txt"))">
+                Export Paths
+            </MudButton>
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Warning"
+                       StartIcon="@Icons.Material.Filled.Delete"
+                       Disabled="@(!HasTargets())"
+                       OnClick="@(() => ConfirmDelete(true, false, "delete these files from disk"))">
+                Delete From Disk
+            </MudButton>
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Secondary"
+                       StartIcon="@Icons.Material.Filled.FolderOff"
+                       Disabled="@(!HasTargets())"
+                       OnClick="@(() => ConfirmDelete(false, true, "remove these items from the library"))">
+                Remove From Library
+            </MudButton>
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Error"
+                       StartIcon="@Icons.Material.Filled.DeleteForever"
+                       Disabled="@(!HasTargets())"
+                       OnClick="@(() => ConfirmDelete(true, true, "delete these files from disk and remove them from the library so they can be redownloaded"))">
+                Nuke For Redownload
+            </MudButton>
+        </div>
+    </MudPaper>
+    <div class="d-flex flex-column" style="height: 100vh; overflow-x: auto">
+        <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="pt-8">
+            @if (_loading)
+            {
+                <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-4"/>
+            }
+
+            <MudText Class="mb-4">
+                @_files.Count files with zero duration
+                @if (Filtered.Count != _files.Count)
+                {
+                    <text> · @Filtered.Count shown</text>
+                }
+                @if (_selected.Count > 0)
+                {
+                    <text> · @_selected.Count selected</text>
+                }
+            </MudText>
+
+            @if (_locations.Count > 0)
+            {
+                <MudText Typo="Typo.subtitle2" Class="mb-2">Locations (click to filter by drive or share)</MudText>
+                <MudStack Row="true" Wrap="Wrap.Wrap" Class="mb-4">
+                    <MudChip T="string"
+                             Color="@(_locationFilter == null ? Color.Primary : Color.Default)"
+                             OnClick="@(() => FilterLocation(null))">
+                        All (@_files.Count)
+                    </MudChip>
+                    @foreach (ZeroDurationLocationSummary location in _locations)
+                    {
+                        <MudChip T="string"
+                                 Color="@(string.Equals(_locationFilter, location.Location, StringComparison.OrdinalIgnoreCase) ? Color.Primary : Color.Default)"
+                                 OnClick="@(() => FilterLocation(location.Location))">
+                            @location.Location (@location.Count)
+                        </MudChip>
+                    }
+                </MudStack>
+            }
+
+            <MudStack Row="true" Class="mb-4" Wrap="Wrap.Wrap">
+                <MudSelect T="string" Label="Kind" Value="_kindFilter" ValueChanged="OnKindChanged" Clearable="true" Style="min-width: 180px">
+                    @foreach (string kind in _kinds)
+                    {
+                        <MudSelectItem Value="@kind">@kind</MudSelectItem>
+                    }
+                </MudSelect>
+                <MudTextField T="string"
+                              Value="_search"
+                              ValueChanged="OnSearchChanged"
+                              Label="Search path or title"
+                              Adornment="Adornment.Start"
+                              AdornmentIcon="@Icons.Material.Filled.Search"
+                              Clearable="true"
+                              Immediate="true"/>
+            </MudStack>
+
+            <MudTable Items="@Filtered"
+                      Dense="true"
+                      Hover="true"
+                      Breakpoint="Breakpoint.None"
+                      MultiSelection="true"
+                      @bind-SelectedItems="_selected"
+                      Height="60vh"
+                      Virtualize="true"
+                      FixedHeader="true">
+                <HeaderContent>
+                    <MudTh>Kind</MudTh>
+                    <MudTh>Title</MudTh>
+                    <MudTh>Location</MudTh>
+                    <MudTh>Path</MudTh>
+                    <MudTh>Library</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="Kind">@context.Kind</MudTd>
+                    <MudTd DataLabel="Title">@context.Title</MudTd>
+                    <MudTd DataLabel="Location">@context.Location</MudTd>
+                    <MudTd DataLabel="Path">
+                        <MudText Typo="Typo.caption" Style="word-break: break-all">@context.Path</MudText>
+                    </MudTd>
+                    <MudTd DataLabel="Library">@context.LibraryName</MudTd>
+                </RowTemplate>
+                <NoRecordsContent>
+                    <MudText>No zero-duration files match the current filters.</MudText>
+                </NoRecordsContent>
+            </MudTable>
+
+            <MudText Typo="Typo.caption" Class="mt-4">
+                Delete From Disk removes the broken files and marks them missing (Trash) so Sonarr/Radarr can redownload.
+                Remove From Library only drops ErsatzTV records — use that for dead drives that cannot be written.
+                Nuke For Redownload does both. Actions apply to the current selection, or to every filtered row if nothing is selected.
+                Full list APIs: <MudLink Href="api/maintenance/zero_duration.csv">CSV</MudLink>,
+                <MudLink Href="api/maintenance/zero_duration.txt">path list</MudLink>.
+            </MudText>
+        </MudContainer>
+    </div>
+</MudForm>
+
+@code {
+    private CancellationTokenSource _cts = new();
+    private bool _loading = true;
+    private List<ZeroDurationFileViewModel> _files = [];
+    private List<ZeroDurationLocationSummary> _locations = [];
+    private System.Collections.Generic.HashSet<ZeroDurationFileViewModel> _selected = [];
+    private string _locationFilter;
+    private string _kindFilter;
+    private string _search = string.Empty;
+    private List<string> _kinds = [];
+
+    private List<ZeroDurationFileViewModel> Filtered =>
+        _files
+            .Where(f => _locationFilter is null || string.Equals(f.Location, _locationFilter, StringComparison.OrdinalIgnoreCase))
+            .Where(f => _kindFilter is null || f.Kind == _kindFilter)
+            .Where(f => string.IsNullOrWhiteSpace(_search)
+                        || f.Path.Contains(_search, StringComparison.OrdinalIgnoreCase)
+                        || f.Title.Contains(_search, StringComparison.OrdinalIgnoreCase)
+                        || f.Location.Contains(_search, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+    public void Dispose()
+    {
+        _cts.Cancel();
+        _cts.Dispose();
+    }
+
+    protected override async Task OnInitializedAsync() => await Reload();
+
+    private async Task Reload()
+    {
+        _loading = true;
+        ZeroDurationFilesViewModel result = await Mediator.Send(new GetZeroDurationFiles(), _cts.Token);
+        _files = result.Files;
+        _locations = result.Locations;
+        _kinds = _files.Select(f => f.Kind).Distinct().OrderBy(k => k).ToList();
+        _selected = [];
+        _loading = false;
+    }
+
+    private void FilterLocation(string location)
+    {
+        _locationFilter = location;
+        _selected = [];
+    }
+
+    private void OnKindChanged(string kind)
+    {
+        _kindFilter = kind;
+        _selected = [];
+    }
+
+    private void OnSearchChanged(string search)
+    {
+        _search = search ?? string.Empty;
+        _selected = [];
+    }
+
+    private bool HasTargets() => _files.Count > 0 && Filtered.Count > 0;
+
+    private IReadOnlyList<ZeroDurationFileViewModel> Targets() =>
+        _selected.Count > 0 ? _selected.ToList() : Filtered;
+
+    private async Task Download(string format)
+    {
+        IReadOnlyList<ZeroDurationFileViewModel> files = Filtered;
+        string content = format == "csv"
+            ? ZeroDurationFileExport.ToCsv(files)
+            : ZeroDurationFileExport.ToPathList(files);
+        string name = format == "csv" ? "zero-duration-files.csv" : "zero-duration-files.txt";
+        string mime = format == "csv" ? "text/csv" : "text/plain";
+        await JsRuntime.InvokeVoidAsync("downloadTextFile", name, mime, content);
+    }
+
+    private async Task ConfirmDelete(bool deleteFromDisk, bool removeFromLibrary, string action)
+    {
+        IReadOnlyList<ZeroDurationFileViewModel> targets = Targets();
+        if (targets.Count == 0)
+        {
+            return;
+        }
+
+        var parameters = new DialogParameters
+        {
+            { "EntityType", "zero-duration files" },
+            { "EntityName", $"{targets.Count}" },
+            { "DetailText", $"This will {action}. Files on dead drives will be skipped for disk delete and listed in the result." },
+            { "DetailHighlight", action }
+        };
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small };
+        IDialogReference dialog = await Dialog.ShowAsync<DeleteDialog>("Confirm cleanup", parameters, options);
+        DialogResult result = await dialog.Result;
+        if (result is { Canceled: false })
+        {
+            await RunDelete(targets, deleteFromDisk, removeFromLibrary);
+        }
+    }
+
+    private async Task RunDelete(
+        IReadOnlyList<ZeroDurationFileViewModel> targets,
+        bool deleteFromDisk,
+        bool removeFromLibrary)
+    {
+        _loading = true;
+        Either<BaseError, DeleteZeroDurationFilesResult> outcome = await Mediator.Send(
+            new DeleteZeroDurationFiles(
+                targets.Select(t => t.MediaItemId).ToList(),
+                false,
+                deleteFromDisk,
+                removeFromLibrary),
+            _cts.Token);
+
+        foreach (BaseError error in outcome.LeftToSeq())
+        {
+            Snackbar.Add(error.Value, Severity.Error);
+            _loading = false;
+            return;
+        }
+
+        foreach (DeleteZeroDurationFilesResult result in outcome.RightToSeq())
+        {
+            string message =
+                $"Requested {result.Requested}: deleted {result.DeletedFromDisk} from disk, {result.AlreadyMissing} already missing, {result.DiskDeleteFailed} disk failures, {result.RemovedFromLibrary} removed from library.";
+            Snackbar.Add(message, result.DiskDeleteFailed > 0 ? Severity.Warning : Severity.Success);
+            if (result.Failures.Count > 0)
+            {
+                int shown = Math.Min(5, result.Failures.Count);
+                Snackbar.Add(string.Join(" | ", result.Failures.Take(shown)), Severity.Warning);
+            }
+        }
+
+        await Reload();
+    }
+}
